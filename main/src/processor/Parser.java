@@ -47,12 +47,12 @@ public class Parser {
 				lineNum++;
 			}
 			String[] in = line.trim().split("\\s+");
-			ArrayList<Point> curve = new ArrayList<Point>();
-			for(int j = 0; j < 12; j+=3){
-				curve.add(new Point(
-						Double.parseDouble(in[j]), Double.parseDouble(in[j+1]), Double.parseDouble(in[j+2])));
-			}
-			newPatch.addCurve(curve);
+			newPatch.addCurve(new Point[]{
+					new Point(Double.parseDouble(in[0]), Double.parseDouble(in[1]), Double.parseDouble(in[2])),
+					new Point(Double.parseDouble(in[3]), Double.parseDouble(in[4]), Double.parseDouble(in[5])),
+					new Point(Double.parseDouble(in[6]), Double.parseDouble(in[7]), Double.parseDouble(in[8])),
+					new Point(Double.parseDouble(in[9]), Double.parseDouble(in[10]), Double.parseDouble(in[11]))
+			});
 			
 		}
 		return newPatch;

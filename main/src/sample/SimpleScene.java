@@ -13,7 +13,6 @@ public class SimpleScene implements GLEventListener {
     private double s = 0;
     private double c = 0;
 
-    /*
     public static void main(String[] args) {
         GLProfile glp = GLProfile.getDefault();
         GLCapabilities caps = new GLCapabilities(glp);
@@ -35,7 +34,6 @@ public class SimpleScene implements GLEventListener {
         FPSAnimator animator = new FPSAnimator(canvas, 60);
         animator.start();
     }
-    */
 
     @Override
     public void display(GLAutoDrawable drawable) {
