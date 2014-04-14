@@ -17,18 +17,20 @@ public class Renderer implements GLEventListener {
 
 	private float rotateT = 0.0f;
 	
-	private int[] mode_ghetto_enum = {GL2.GL_LINE, GL2.GL_FILL};
-	private int[] shadeMode_ghetto_enum = {GLLightingFunc.GL_FLAT, GLLightingFunc.GL_SMOOTH};
-	private static int mode = 1;
-	private static int shadeMode = 1;
+	private enum Mode {
+		FILLED, WIREFRAME, HIDDEN_LINE
+	}
+
+	private static boolean smooth = true;
+	
+	private static Mode mode = Mode.FILLED;
 
 	@Override
 	public void display(GLAutoDrawable gLDrawable) {
 		final GL2 gl = gLDrawable.getGL().getGL2();
 		gl.glClear(GL.GL_COLOR_BUFFER_BIT);
 		gl.glClear(GL.GL_DEPTH_BUFFER_BIT);
-		gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, mode_ghetto_enum[mode]);
-		gl.glShadeModel(shadeMode_ghetto_enum[shadeMode]);
+
 		gl.glLoadIdentity();
 		gl.glTranslatef(0.0f, 0.0f, -5.0f);
 
@@ -36,11 +38,42 @@ public class Renderer implements GLEventListener {
 		gl.glRotatef(rotateT, 1.0f, 0.0f, 0.0f);
 		gl.glRotatef(rotateT, 0.0f, 1.0f, 0.0f);
 		gl.glRotatef(rotateT, 0.0f, 0.0f, 1.0f);
+		
+		gl.glShadeModel(smooth ? GL2.GL_SMOOTH : GL2.GL_FLAT);
 
+		switch (mode) {
+		case WIREFRAME:
+			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+			drawQuads(gl);
+			break;
+		case HIDDEN_LINE:
+			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+			drawQuads(gl);
+
+			// Hidden-line removal through polygon offset
+			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+			gl.glEnable(GL2.GL_POLYGON_OFFSET_FILL);
+			gl.glDisable(GL2.GL_LIGHTING);
+			gl.glPolygonOffset(1.0f, 1.0f);
+			gl.glColor3f(0.0f, 0.0f, 0.0f); // Background color
+			drawQuads(gl);
+			gl.glDisable(GL2.GL_POLYGON_OFFSET_FILL);
+			gl.glEnable(GL2.GL_LIGHTING);
+			break;
+		case FILLED:
+			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+			drawQuads(gl);
+			break;
+		}
+
+		// increasing rotation for the next iteration
+		rotateT += 0.2f;
+	}
+	
+	private void drawQuads(GL2 gl) {
 		// Draw all quads
 		for (Quad quad : quads) {
 			gl.glBegin(GL2.GL_QUADS);
-			//gl.glColor3f(1.0f, 0.0f, 0.0f); // set the color of the quad
 			for (int i = 0; i < 4; i++) {
 				List<Point> curr_norms = norms.get(quad.points[i]);
 				Point avg = new Point(0.0,0.0,0.0);
@@ -55,12 +88,8 @@ public class Renderer implements GLEventListener {
 			}
 			gl.glEnd();
 		}
-
-		// increasing rotation for the next iteration
-		rotateT += 0.05f;
 	}
-
-	// private ;
+	
 	private List<Quad> quads = new ArrayList<>();
 	private Hashtable<Point, List<Point>> norms = new Hashtable<Point, List<Point>>();
 	double step = 0.25;
@@ -77,6 +106,7 @@ public class Renderer implements GLEventListener {
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, specular, 0);
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, lightPos, 0);
 	}
+
 
 	@Override
 	public void init(GLAutoDrawable glDrawable) {
@@ -139,7 +169,7 @@ public class Renderer implements GLEventListener {
 
 	public static void main(String[] args) {
 		final GLCanvas canvas = new GLCanvas();
-		final Frame frame = new Frame("Jogl Quad drawing");
+		final Frame frame = new Frame("BZR!");
 		final Animator animator = new Animator(canvas);
 		canvas.addGLEventListener(new Renderer());
 		frame.add(canvas);
@@ -155,20 +185,21 @@ public class Renderer implements GLEventListener {
 		
 		canvas.addKeyListener(new KeyAdapter() {
 			@Override
-			public void keyPressed(KeyEvent e){
-				System.out.print("Pressed ");
-				switch(e.getKeyCode()){
-					case KeyEvent.VK_W:
-						System.out.println("w");
-						mode = (1 - mode);
-						break;
-					case KeyEvent.VK_S:
-						System.out.println("s");
-						shadeMode = (1 - shadeMode);
-						break;
+			public void keyPressed(KeyEvent e) {
+				switch (e.getKeyCode()) {
+				case KeyEvent.VK_S:
+					smooth = !smooth;
+					break;
+				case KeyEvent.VK_W:
+					mode = mode == Mode.WIREFRAME ? Mode.FILLED : Mode.WIREFRAME;
+					break;
+				case KeyEvent.VK_H:
+					mode = mode == Mode.HIDDEN_LINE ? Mode.FILLED : Mode.HIDDEN_LINE;
+					break;
 				}
 			}
 		});
+		
 		frame.setVisible(true);
 		animator.start();
 		canvas.requestFocus();

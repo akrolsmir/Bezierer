@@ -105,11 +105,11 @@ public class Patch {
 	
 	
 	/**
-	 * Uniformally tessellates this patch into quads.
+	 * Uniformly tessellates this patch into quads.
 	 * 
 	 * @param step
 	 *            The step size to use, between 0 and 1.0
-	 * @return The list of quads (each represented by a Point[])
+	 * @return The list of quads
 	 */
 	public List<Quad> uniformTessellation(double step) {
 		ArrayList<Quad> quads = new ArrayList<Quad>();
