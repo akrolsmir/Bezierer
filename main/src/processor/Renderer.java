@@ -84,7 +84,7 @@ public class Renderer implements GLEventListener {
 	}
 	
 	private List<Quad> quads = new ArrayList<>();
-	double step = .5;
+	double step = .1;
 	
 	private void initLight(GL2 gl){
 		float[] lightPos = { 2000,2000,2000, 1 };

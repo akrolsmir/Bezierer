@@ -77,7 +77,7 @@ public class Patch {
 	private Vertex bezCurveInterp(Point[] curve, double u) {
 		// First, split each of the three segments
 		// to form two new ones AB and BC
-			Point A = curve[0].multiply(1 - u).add(curve[1].multiply(u));
+		Point A = curve[0].multiply(1 - u).add(curve[1].multiply(u));
 		Point B = curve[1].multiply(1 - u).add(curve[2].multiply(u));
 		Point C = curve[2].multiply(1 - u).add(curve[3].multiply(u));
 
@@ -97,20 +97,32 @@ public class Patch {
 	private Vertex bezPatchInterp(double u, double v) {
 		Point[] vcurve = new Point[4];
 		Point[] ucurve = new Point[4];
-
-		// Build control points for a Bezier curve in v
-		for (int i = 0; i < 4; i++) {
-			ucurve[i] = bezCurveInterp(controls[i], v).p;
-		}
-		for (int i = 0; i < 4; i++) {
-			vcurve[i] = bezCurveInterp(controls[i], u).p;
-		}
-
-		Vertex vPoint = bezCurveInterp(vcurve, v);
-		Vertex uPoint = bezCurveInterp(ucurve, u);
+		Point p, n;
+		Point vPoint, uPoint;
 		
-		Point n = uPoint.n.crossProduct(vPoint.n);
-		return new Vertex(vPoint.p, n.normalize());
+		//broken, doesnt properly handle degenerate normals
+		do{
+			// Build control points for a Bezier curve in v
+			for (int i = 0; i < 4; i++) {
+				ucurve[i] = bezCurveInterp(controls[i], v).p;
+			}
+			for (int i = 0; i < 4; i++) {
+				Point[] vPoints = new Point[4];
+				for(int j = 0; j < 4; j++){
+					vPoints[j] = controls[j][i];
+				}
+				vcurve[i] = bezCurveInterp(vPoints, u).p;
+			}
+			p = bezCurveInterp(ucurve, u).p;
+			vPoint = bezCurveInterp(vcurve, v).n;
+			uPoint = bezCurveInterp(ucurve, u).n;
+			n = uPoint.crossProduct(vPoint).multiply(-1);
+			u = Math.random()*.000000002 - .000000001 + u;
+			v = Math.random()*.000000002 - .000000001 + u;
+		} while(n.distance(Point.ZERO) == 0);
+
+	
+		return new Vertex(p, n.normalize());
 	}
 	
 	
