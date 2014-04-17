@@ -73,7 +73,7 @@ public class Renderer implements GLEventListener {
 	private void drawQuads(GL2 gl) {
 		// Draw all quads
 		for (Quad quad : quads) {
-			gl.glBegin(GL2.GL_QUADS);
+			gl.glBegin(GL2.GL_POLYGON);
 			for (int i = 0; i < 4; i++) {
 				float[] normal = {(float) quad.points[i].n.getX(), (float) quad.points[i].n.getY(), (float) quad.points[i].n.getZ()};
 				gl.glNormal3fv(normal, 0);

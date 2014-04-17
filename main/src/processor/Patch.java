@@ -99,27 +99,44 @@ public class Patch {
 		Point[] ucurve = new Point[4];
 		Point p, n;
 		Point vPoint, uPoint;
+		for (int i = 0; i < 4; i++) {
+			ucurve[i] = bezCurveInterp(controls[i], v).p;
+		}
+		for (int i = 0; i < 4; i++) {
+			Point[] vPoints = new Point[4];
+			for(int j = 0; j < 4; j++){
+				vPoints[j] = controls[j][i];
+			}
+			vcurve[i] = bezCurveInterp(vPoints, u).p;
+		}
+		p = bezCurveInterp(ucurve, u).p;
 		
 		//broken, doesnt properly handle degenerate normals
 		do{
-			// Build control points for a Bezier curve in v
-			for (int i = 0; i < 4; i++) {
-				ucurve[i] = bezCurveInterp(controls[i], v).p;
-			}
-			for (int i = 0; i < 4; i++) {
-				Point[] vPoints = new Point[4];
-				for(int j = 0; j < 4; j++){
-					vPoints[j] = controls[j][i];
-				}
-				vcurve[i] = bezCurveInterp(vPoints, u).p;
-			}
-			p = bezCurveInterp(ucurve, u).p;
 			vPoint = bezCurveInterp(vcurve, v).n;
 			uPoint = bezCurveInterp(ucurve, u).n;
 			n = uPoint.crossProduct(vPoint).multiply(-1);
-			u = Math.random()*.000000002 - .000000001 + u;
-			v = Math.random()*.000000002 - .000000001 + u;
-		} while(n.distance(Point.ZERO) == 0);
+			if(n.distance(Point.ZERO) < .0001){
+				System.out.println(n);
+				if(u > 0.5){
+					u =  -.001 + u;
+					v = -.001 + v;
+				} else {
+					u =  .001 + u;
+					v = .001 + v;
+				}
+				for (int i = 0; i < 4; i++) {
+					ucurve[i] = bezCurveInterp(controls[i], v).p;
+				}
+				for (int i = 0; i < 4; i++) {
+					Point[] vPoints = new Point[4];
+					for(int j = 0; j < 4; j++){
+						vPoints[j] = controls[j][i];
+					}
+					vcurve[i] = bezCurveInterp(vPoints, u).p;
+				}
+			}
+		} while(n.distance(Point.ZERO) < .0001);
 
 	
 		return new Vertex(p, n.normalize());
@@ -139,10 +156,10 @@ public class Patch {
 		for (double i = 0; i + step < 1 + 0.0001; i += step) {
 			for (double j = 0; j + step < 1 + 0.0001; j += step) {
 				Vertex[] p = new Vertex[4];
-				p[3] = bezPatchInterp(i, j);
-				p[2] = bezPatchInterp(i + step, j);
-				p[1] = bezPatchInterp(i + step, j + step);
-				p[0] = bezPatchInterp(i, j + step);
+				p[0] = bezPatchInterp(i, j);
+				p[1] = bezPatchInterp(i + step, j);
+				p[2] = bezPatchInterp(i + step, j + step);
+				p[3] = bezPatchInterp(i, j + step);
 				quads.add(new Quad(p));
 			}
 		}
