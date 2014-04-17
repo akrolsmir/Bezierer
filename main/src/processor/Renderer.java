@@ -17,6 +17,14 @@ public class Renderer implements GLEventListener {
 
 	private float rotateT = 0.0f;
 	
+	private float[] rgba_spec = {0.0f, 0.0f, 0.0f};
+	private float[] rgba_diff = {0.0f, 0.0f, 0.0f};
+	private float[] rgba_amb = {1.0f, 1.0f, 1.0f};
+	
+	private float[] filled_rgba_spec = {1.0f, 1.0f, 1.0f};
+	private float[] filled_rgba_diff = {1.0f, 0.0f, 0.0f};
+	private float[] filled_rgba_amb = {0.2f, 0.0f, 0.0f};
+	
 	private enum Mode {
 		FILLED, WIREFRAME, HIDDEN_LINE
 	}
@@ -43,6 +51,10 @@ public class Renderer implements GLEventListener {
 		gl.glRotatef(rotateZ, 0.0f, 0.0f, 1.0f);
 		
 		gl.glShadeModel(smooth ? GL2.GL_SMOOTH : GL2.GL_FLAT);
+		
+        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, rgba_amb, 0);
+        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, rgba_diff, 0);
+        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, rgba_spec, 0);
 
 		switch (mode) {
 		case WIREFRAME:
@@ -64,6 +76,10 @@ public class Renderer implements GLEventListener {
 			gl.glEnable(GL2.GL_LIGHTING);
 			break;
 		case FILLED:
+	        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, filled_rgba_amb, 0);
+	        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, filled_rgba_diff, 0);
+	        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, filled_rgba_spec, 0);
+	        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 16.0f);
 			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
 			drawQuads(gl);
 			break;
@@ -113,14 +129,6 @@ public class Renderer implements GLEventListener {
 		gl.glEnable(GL.GL_DEPTH_TEST);
 		gl.glDepthFunc(GL.GL_LEQUAL);
 		gl.glHint(GL2ES1.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);
-		
-		float[] rgba_spec = {1.0f, 1.0f, 1.0f};
-		float[] rgba_diff = {1.0f, 0.0f, 0.0f};
-		float[] rgba_amb = {0.2f, 0.0f, 0.0f};
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, rgba_amb, 0);
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, rgba_diff, 0);
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, rgba_spec, 0);
-        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 16.0f);
 
 		// Parse all patches, then tessellate into quads
 		System.out.println("Parsing...");
@@ -183,7 +191,7 @@ public class Renderer implements GLEventListener {
 		canvas.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				float turn = 2f, move = 2f;
+				float turn = 2f, move = .1f;
 
 				if ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) == KeyEvent.CTRL_DOWN_MASK) {
 					switch (e.getKeyCode()) {

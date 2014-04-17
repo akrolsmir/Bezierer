@@ -119,11 +119,11 @@ public class Patch {
 			if(n.distance(Point.ZERO) < .0001){
 				System.out.println(n);
 				if(u > 0.5){
-					u =  -.001 + u;
-					v = -.001 + v;
+					u =  -.00001 + u;
+					v = -.00001 + v;
 				} else {
-					u =  .001 + u;
-					v = .001 + v;
+					u =  .00001 + u;
+					v = .00001 + v;
 				}
 				for (int i = 0; i < 4; i++) {
 					ucurve[i] = bezCurveInterp(controls[i], v).p;
