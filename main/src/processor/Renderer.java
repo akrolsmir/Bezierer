@@ -24,6 +24,9 @@ public class Renderer implements GLEventListener {
 	private static boolean smooth = true;
 	
 	private static Mode mode = Mode.FILLED;
+	
+	private static float rotateX, rotateY, rotateZ;
+	private static float translateX, translateY, translateZ = -10;
 
 	@Override
 	public void display(GLAutoDrawable gLDrawable) {
@@ -32,12 +35,12 @@ public class Renderer implements GLEventListener {
 		gl.glClear(GL.GL_DEPTH_BUFFER_BIT);
 
 		gl.glLoadIdentity();
-		gl.glTranslatef(0.0f, 0.0f, -5.0f);
+		gl.glTranslatef(translateX, translateY, translateZ);
 
 		// rotate about the three axes
-		gl.glRotatef(rotateT, 1.0f, 0.0f, 0.0f);
-		gl.glRotatef(rotateT, 0.0f, 1.0f, 0.0f);
-		gl.glRotatef(rotateT, 0.0f, 0.0f, 1.0f);
+		gl.glRotatef(rotateX, 1.0f, 0.0f, 0.0f);
+		gl.glRotatef(rotateY, 0.0f, 1.0f, 0.0f);
+		gl.glRotatef(rotateZ, 0.0f, 0.0f, 1.0f);
 		
 		gl.glShadeModel(smooth ? GL2.GL_SMOOTH : GL2.GL_FLAT);
 
@@ -67,7 +70,7 @@ public class Renderer implements GLEventListener {
 		}
 
 		// increasing rotation for the next iteration
-		rotateT += 0.2f;
+		// rotateT += 0.2f;
 	}
 	
 	private void drawQuads(GL2 gl) {
@@ -84,7 +87,7 @@ public class Renderer implements GLEventListener {
 	}
 	
 	private List<Quad> quads = new ArrayList<>();
-	double step = .1;
+	double step = .25;
 	
 	private void initLight(GL2 gl){
 		float[] lightPos = { 2000,2000,2000, 1 };
@@ -180,16 +183,59 @@ public class Renderer implements GLEventListener {
 		canvas.addKeyListener(new KeyAdapter() {
 			@Override
 			public void keyPressed(KeyEvent e) {
-				switch (e.getKeyCode()) {
-				case KeyEvent.VK_S:
-					smooth = !smooth;
-					break;
-				case KeyEvent.VK_W:
-					mode = mode == Mode.WIREFRAME ? Mode.FILLED : Mode.WIREFRAME;
-					break;
-				case KeyEvent.VK_H:
-					mode = mode == Mode.HIDDEN_LINE ? Mode.FILLED : Mode.HIDDEN_LINE;
-					break;
+				float turn = 2f, move = 2f;
+
+				if ((e.getModifiersEx() & KeyEvent.CTRL_DOWN_MASK) == KeyEvent.CTRL_DOWN_MASK) {
+					switch (e.getKeyCode()) {
+					// Translate object in x/y plane
+					case KeyEvent.VK_UP:
+						translateY += move;
+						break;
+					case KeyEvent.VK_DOWN:
+						translateY -= move;
+						break;
+					case KeyEvent.VK_LEFT:
+						translateX -= move;
+						break;
+					case KeyEvent.VK_RIGHT:
+						translateX += move;
+						break;
+					}
+				} else {
+					switch (e.getKeyCode()) {
+					// Rotate object
+					case KeyEvent.VK_UP:
+						rotateX += turn;
+						break;
+					case KeyEvent.VK_DOWN:
+						rotateX -= turn;
+						break;
+					case KeyEvent.VK_LEFT:
+						rotateY += turn;
+						break;
+					case KeyEvent.VK_RIGHT:
+						rotateY -= turn;
+						break;
+						
+					// Zoom in or out
+					case KeyEvent.VK_EQUALS:
+						translateZ += move;
+						break;
+					case KeyEvent.VK_MINUS:
+						translateZ -= move;
+						break;
+
+					// Toggle different modes
+					case KeyEvent.VK_S:
+						smooth = !smooth;
+						break;
+					case KeyEvent.VK_W:
+						mode = mode == Mode.WIREFRAME ? Mode.FILLED : Mode.WIREFRAME;
+						break;
+					case KeyEvent.VK_H:
+						mode = mode == Mode.HIDDEN_LINE ? Mode.FILLED : Mode.HIDDEN_LINE;
+						break;
+					}
 				}
 			}
 		});
