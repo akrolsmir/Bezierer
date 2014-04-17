@@ -75,24 +75,16 @@ public class Renderer implements GLEventListener {
 		for (Quad quad : quads) {
 			gl.glBegin(GL2.GL_QUADS);
 			for (int i = 0; i < 4; i++) {
-				List<Point> curr_norms = norms.get(quad.points[i]);
-				Point avg = new Point(0.0,0.0,0.0);
-				int len = curr_norms.size();
-				for(int j = 0; j < len; j++){
-					avg = avg.add(curr_norms.get(j));
-				}
-				avg.normalize();
-				float[] normal = {(float) avg.getX(), (float) avg.getY(), (float) avg.getZ()};
+				float[] normal = {(float) quad.points[i].n.getX(), (float) quad.points[i].n.getY(), (float) quad.points[i].n.getZ()};
 				gl.glNormal3fv(normal, 0);
-				gl.glVertex3d(quad.points[i].getX(), quad.points[i].getY(), quad.points[i].getZ());
+				gl.glVertex3d(quad.points[i].p.getX(), quad.points[i].p.getY(), quad.points[i].p.getZ());
 			}
 			gl.glEnd();
 		}
 	}
 	
 	private List<Quad> quads = new ArrayList<>();
-	private Hashtable<Point, List<Point>> norms = new Hashtable<Point, List<Point>>();
-	double step = 0.25;
+	double step = .5;
 	
 	private void initLight(GL2 gl){
 		float[] lightPos = { 2000,2000,2000, 1 };
@@ -121,7 +113,7 @@ public class Renderer implements GLEventListener {
 		
 		float[] rgba_spec = {1.0f, 1.0f, 1.0f};
 		float[] rgba_diff = {1.0f, 0.0f, 0.0f};
-		float[] rgba_amb = {0.3f, 0.0f, 0.0f};
+		float[] rgba_amb = {0.2f, 0.0f, 0.0f};
         gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, rgba_amb, 0);
         gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, rgba_diff, 0);
         gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, rgba_spec, 0);
@@ -134,6 +126,7 @@ public class Renderer implements GLEventListener {
 		for (Patch patch : patches) {
 			quads.addAll(patch.uniformTessellation(step));
 		}
+		/*
 		for(Quad quad : quads){
 			for(int i = 0; i < 4; i++){
 				if(norms.containsKey(quad.points[i])){
@@ -145,6 +138,7 @@ public class Renderer implements GLEventListener {
 				}
 			}
 		}
+		*/
 		System.out.println("Generating normals...");
 		System.out.println("Done.");
 	}
