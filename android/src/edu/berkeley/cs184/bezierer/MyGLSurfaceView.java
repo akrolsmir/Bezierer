@@ -16,6 +16,13 @@ package edu.berkeley.cs184.bezierer;
  */
 
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.List;
+
+import processor.Parser;
+import processor.Patch;
 import android.content.Context;
 import android.opengl.GLSurfaceView;
 import android.view.MotionEvent;
@@ -41,6 +48,17 @@ public class MyGLSurfaceView extends GLSurfaceView {
 
         // Render the view only when there is a change in the drawing data
         setRenderMode(GLSurfaceView.RENDERMODE_WHEN_DIRTY);
+        
+		try {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					context.getAssets().open("teapot.bez")));
+			List<Patch> patches = Parser.read(reader);
+			for (Patch patch : patches) {
+				mRenderer.quads.addAll(patch.uniformTessellation(0.25));
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
     }
 
     private final float TOUCH_SCALE_FACTOR = 180.0f / 320;

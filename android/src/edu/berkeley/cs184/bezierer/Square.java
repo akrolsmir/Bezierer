@@ -20,6 +20,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.Arrays;
+
+import processor.Quad;
 
 import android.opengl.GLES20;
 
@@ -56,22 +59,26 @@ public class Square {
 
     // number of coordinates per vertex in this array
     static final int COORDS_PER_VERTEX = 3;
-    static float squareCoords[] = {
-            -0.5f,  1f, 0.0f,   // top left
-            -0.5f, -0.5f, 0.0f,   // bottom left
-             0.5f, -0.5f, 0.0f,   // bottom right
-             0.5f,  0.5f, 0.0f }; // top right
 
     private final short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
 
     private final int vertexStride = COORDS_PER_VERTEX * 4; // 4 bytes per vertex
 
     float color[] = { 0.2f, 0.709803922f, 0.898039216f, 1.0f };
+    
+    float[] squareCoords;
 
     /**
      * Sets up the drawing object data for use in an OpenGL ES context.
      */
-    public Square() {
+    public Square(Quad quad) {
+    	squareCoords = new float[]{
+    			(float) quad.points[0].p.getX(), (float) quad.points[0].p.getY(), (float) quad.points[0].p.getZ(),
+    			(float) quad.points[1].p.getX(), (float) quad.points[1].p.getY(), (float) quad.points[1].p.getZ(),
+    			(float) quad.points[2].p.getX(), (float) quad.points[2].p.getY(), (float) quad.points[2].p.getZ(),
+    			(float) quad.points[3].p.getX(), (float) quad.points[3].p.getY(), (float) quad.points[3].p.getZ()
+    	};
+    	
         // initialize vertex byte buffer for shape coordinates
         ByteBuffer bb = ByteBuffer.allocateDirect(
         // (# of coordinate values * 4 bytes per float)
@@ -142,11 +149,15 @@ public class Square {
 
         // Draw the square
         GLES20.glDrawElements(
-                GLES20.GL_TRIANGLES, drawOrder.length,
+                GLES20.GL_LINE_LOOP, drawOrder.length,
                 GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
 
         // Disable vertex array
         GLES20.glDisableVertexAttribArray(mPositionHandle);
+    }
+    
+    public String toString(){
+    	return Arrays.toString(squareCoords);
     }
 
 }
