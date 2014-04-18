@@ -85,7 +85,7 @@ public class Parser {
 						
 						if(numVerts == 3){
 							for(int i = 0; i < 3; i++){
-								Point normal = (faceVerts[(i+1)%3].p.subtract(faceVerts[i].p)).crossProduct(faceVerts[(i+2)%3].p.subtract(faceVerts[i].p));
+								Point normal = (faceVerts[(i+1)%3].p.subtract(faceVerts[i].p)).crossProduct(faceVerts[(i+2)%3].p.subtract(faceVerts[i].p)).normalize();
 								if(hash.containsKey(faceVerts[i].p)){
 									hash.get(faceVerts[i].p).add(normal);
 								} else {
@@ -97,7 +97,7 @@ public class Parser {
 							polys.add(new Triangle(faceVerts));
 						} else {
 							for(int i = 0; i < 4; i++){
-								Point normal = (faceVerts[(i+1)%4].p.subtract(faceVerts[i].p)).crossProduct(faceVerts[(i+3)%4].p.subtract(faceVerts[i].p));
+								Point normal = (faceVerts[(i+1)%4].p.subtract(faceVerts[i].p)).crossProduct(faceVerts[(i+3)%4].p.subtract(faceVerts[i].p)).normalize();
 								if(hash.containsKey(faceVerts[i].p)){
 									hash.get(faceVerts[i].p).add(normal);
 								} else {
@@ -128,7 +128,7 @@ public class Parser {
 				for(Point p : temp){
 					avg = avg.add(p);
 				}
-				avg.normalize();
+				avg = avg.normalize();
 				avgs.put(key, avg);
 			}
 			for(Polygon poly : polys){
