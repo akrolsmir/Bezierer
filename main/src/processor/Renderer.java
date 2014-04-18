@@ -25,13 +25,23 @@ public class Renderer implements GLEventListener {
 	private float[] filled_rgba_diff = {1.0f, 0.0f, 0.0f};
 	private float[] filled_rgba_amb = {0.2f, 0.0f, 0.0f};
 	
+	private static String fileName;
+	
 	private enum Mode {
 		FILLED, WIREFRAME, HIDDEN_LINE
+	}
+	
+	private enum TessMode {
+		UNIFORM, ADAPTIVE
 	}
 
 	private static boolean smooth = true;
 	
 	private static Mode mode = Mode.FILLED;
+	private static TessMode tess = TessMode.UNIFORM;
+	
+	private List<Polygon> quads = new ArrayList<>();
+	static double modifier;
 	
 	private static float rotateX, rotateY, rotateZ;
 	private static float translateX, translateY, translateZ = -10;
@@ -103,10 +113,6 @@ public class Renderer implements GLEventListener {
 		}
 	}
 	
-	private List<Polygon> quads = new ArrayList<>();
-	double step = .25;
-	double error = .1;
-	
 	private void initLight(GL2 gl){
 		float[] lightPos = { 2000,2000,2000, 1 };
 		float[] noAmbient = { 0.2f, 0.2f, 0.2f, 1f };
@@ -134,12 +140,17 @@ public class Renderer implements GLEventListener {
 
 		// Parse all patches, then tessellate into quads
 		System.out.println("Parsing...");
-		List<Patch> patches = Parser.read(FileSystems.getDefault().getPath("teapot.bez"));
+		List<Patch> patches = Parser.read(FileSystems.getDefault().getPath(fileName));
 		System.out.println("Tessellating...");
 		for (Patch patch : patches) {
-			//quads.addAll(patch.uniformTessellation(step));
-			quads.addAll(patch.adaptiveTessellation(error, 0.0, 1.0, 0.0, 1.0));
-			System.out.println(quads.size());
+			switch(tess){
+			case UNIFORM: 
+				quads.addAll(patch.uniformTessellation(modifier));
+				break;
+			case ADAPTIVE:
+				quads.addAll(patch.adaptiveTessellation(modifier, 0.0, 1.0, 0.0, 1.0));
+				break;
+			}
 		}
 		/*
 		for(Quad quad : quads){
@@ -177,6 +188,11 @@ public class Renderer implements GLEventListener {
 	}
 
 	public static void main(String[] args) {
+		fileName = args[0];
+		modifier = Double.parseDouble(args[1]);
+		if (args.length == 3 && args[2] == "-a"){
+			tess = TessMode.ADAPTIVE;
+		}
 		final GLCanvas canvas = new GLCanvas();
 		final Frame frame = new Frame("BZR!");
 		final Animator animator = new Animator(canvas);
