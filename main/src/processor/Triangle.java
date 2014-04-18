@@ -14,6 +14,12 @@ public class Triangle extends Polygon{
 		return points;
 	}
 	
+	public void setPoints(Vertex[] p){
+		for(int i = 0; i < 3; i++){
+			points[i] = p[i];
+		}
+	}
+	
 	public int getNum(){
 		return numPoints;
 	}
