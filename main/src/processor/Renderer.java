@@ -19,7 +19,7 @@ public class Renderer implements GLEventListener {
 	
 	private float[] rgba_spec = {0.0f, 0.0f, 0.0f};
 	private float[] rgba_diff = {0.0f, 0.0f, 0.0f};
-	private float[] rgba_amb = {1.0f, 1.0f, 1.0f};
+	private float[] rgba_amb = {0.0f, 1.0f, 0.0f};
 	
 	private float[] filled_rgba_spec = {1.0f, 1.0f, 1.0f};
 	private float[] filled_rgba_diff = {1.0f, 0.0f, 0.0f};
@@ -91,19 +91,21 @@ public class Renderer implements GLEventListener {
 	
 	private void drawQuads(GL2 gl) {
 		// Draw all quads
-		for (Quad quad : quads) {
+		for (Polygon quad : quads) {
 			gl.glBegin(GL2.GL_POLYGON);
-			for (int i = 0; i < 4; i++) {
-				float[] normal = {(float) quad.points[i].n.getX(), (float) quad.points[i].n.getY(), (float) quad.points[i].n.getZ()};
+			for (int i = 0; i < quad.getNum(); i++) {
+				Vertex[] points = quad.getPoints();
+				float[] normal = {(float) points[i].n.getX(), (float) points[i].n.getY(), (float) points[i].n.getZ()};
 				gl.glNormal3fv(normal, 0);
-				gl.glVertex3d(quad.points[i].p.getX(), quad.points[i].p.getY(), quad.points[i].p.getZ());
+				gl.glVertex3d(points[i].p.getX(), points[i].p.getY(), points[i].p.getZ());
 			}
 			gl.glEnd();
 		}
 	}
 	
-	private List<Quad> quads = new ArrayList<>();
+	private List<Polygon> quads = new ArrayList<>();
 	double step = .25;
+	double error = .1;
 	
 	private void initLight(GL2 gl){
 		float[] lightPos = { 2000,2000,2000, 1 };
@@ -135,7 +137,9 @@ public class Renderer implements GLEventListener {
 		List<Patch> patches = Parser.read(FileSystems.getDefault().getPath("teapot.bez"));
 		System.out.println("Tessellating...");
 		for (Patch patch : patches) {
-			quads.addAll(patch.uniformTessellation(step));
+			//quads.addAll(patch.uniformTessellation(step));
+			quads.addAll(patch.adaptiveTessellation(error, 0.0, 1.0, 0.0, 1.0));
+			System.out.println(quads.size());
 		}
 		/*
 		for(Quad quad : quads){

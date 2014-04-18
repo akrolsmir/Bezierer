@@ -91,7 +91,7 @@ public class Patch {
 		
 		Point n = (E.subtract(D)).multiply(3);
 
-		return new Vertex(p,n);
+		return new Vertex(p,n, u, u);
 	}
 
 	private Vertex bezPatchInterp(double u, double v) {
@@ -117,7 +117,6 @@ public class Patch {
 			uPoint = bezCurveInterp(ucurve, u).n;
 			n = uPoint.crossProduct(vPoint).multiply(-1);
 			if(n.distance(Point.ZERO) < .0001){
-				System.out.println(n);
 				if(u > 0.5){
 					u =  -.00001 + u;
 					v = -.00001 + v;
@@ -139,7 +138,7 @@ public class Patch {
 		} while(n.distance(Point.ZERO) < .0001);
 
 	
-		return new Vertex(p, n.normalize());
+		return new Vertex(p, n.normalize(), u, v);
 	}
 	
 	
@@ -172,7 +171,7 @@ public class Patch {
 	 * UNLESS IT MAGICALLY WORKS + LAZY
 	 */
 	
-	private double tau = .00000001;
+	private double tau = .001;
 	
 	public List<Triangle> adaptiveTessellation(double error, double Umin, double Umax, double Vmin, double Vmax){
 		ArrayList<Triangle> tris = new ArrayList<Triangle>();
@@ -187,11 +186,11 @@ public class Patch {
 			pTemp[0] = p[0];
 			pTemp[1] = p[1];
 			pTemp[2] = p[2];
-			tris.addAll(splitTriangle(p, Umin, Vmin, Umax, Vmin, Umax, Vmax));
+			tris.addAll(splitTriangle(pTemp));
 			pTemp[0] = p[0];
-			pTemp[3] = p[3];
-			pTemp[2] = p[2];
-			tris.addAll(splitTriangle(p, Umin, Vmin, Umin, Vmax, Umax, Vmax));
+			pTemp[1] = p[2];
+			pTemp[2] = p[3];
+			tris.addAll(splitTriangle(pTemp));
 			
 		} else {
 			tris.addAll(adaptiveTessellation(error,Umin,(Umin+Umax)/2,Vmin,(Vmin+Vmax)/2)); //such recursion
@@ -204,40 +203,109 @@ public class Patch {
 	}
 	
 	private boolean isFlat(Vertex[] p, double error, double Umin, double Umax, double Vmin, double Vmax){
-		//TODO
-		return false;
+		Vertex[] midpoints = new Vertex[4];
+		Vertex center;
+		
+		for(int i = 0; i < 4; i++){
+			midpoints[i] = bezPatchInterp((p[i].u+p[(i+1)%4].u)/2, (p[i].v+p[(i+1)%4].v)/2);
+		}
+		center = bezPatchInterp((Umin + Umax)/2, (Vmin+Vmax)/2);
+		for(int i = 0; i < 4; i++){
+			if(midpoints[i].p.subtract(p[i].p.midpoint(p[(i+1)%4].p)).magnitude() >= error){
+				return false;
+			}
+		}
+		return center.p.subtract(p[0].p.midpoint(p[2].p)).magnitude() < error;
 	}
 	
-	private List<Triangle> splitTriangle(Vertex[] p, double u1, double v1, double u2, double v2, double u3, double v3){
+	public int depth = 0;
+	
+	private List<Triangle> splitTriangle(Vertex[] p){
 		ArrayList<Triangle> tris = new ArrayList<Triangle>();
-		boolean e1 = testEdge(tau, u1, v1, u2, v2, p[0].p, p[1].p);
-		boolean e2 = testEdge(tau, u1, v1, u3, v3, p[0].p, p[2].p);
-		boolean e3 = testEdge(tau, u2, v2, u3, v3, p[1].p, p[2].p);
+		boolean e1 = testEdge(tau, p[0], p[1]);
+		boolean e2 = testEdge(tau, p[0], p[2]);
+		boolean e3 = testEdge(tau, p[1], p[2]);
 		if(e1 && e2 && e3){
-			/*
-			Point[] tri = new Point[3];
-			tri[0] = p[0];
-			tri[1] = p[0].midpoint(p[1]);
-			tri[2] = p[0].midpoint(p[2]);
-			tris.addAll(splitTriangle(tri, u1, v1, (u1 + u2)/2, (v1+v2)/2, (u1+u3)/2, (v1+v3)/2));
-			*/
-			/*
-			tri[0] = p[0];
-			tri[1] = p[0].midpoint(p[1]);
-			tri[2] = p[0].midpoint(p[2]);
-			*/
+			depth--;
+			tris.add(new Triangle(p));
+			return tris;
 		}
-		//TODO
 		else {
-			//tris.add(new Triangle(p));
+			
+			//calc midpoints in uv
+			Vertex p01 = bezPatchInterp((p[0].u + p[1].u)/2, (p[0].v + p[1].v)/2);
+			Vertex p02 = bezPatchInterp((p[0].u + p[2].u)/2, (p[0].v + p[2].v)/2);
+			Vertex p12 = bezPatchInterp((p[1].u + p[2].u)/2, (p[1].v + p[2].v)/2);
+			Vertex[] tri = new Vertex[3];
+			
+			//such symmetries!
+			if(!e1 && !e2 && !e3){
+				tri[0] = p[0];
+				tri[1] = p01;
+				tri[2] = p02;
+				tris.addAll(splitTriangle(tri));
+				tri[0] = p[1];
+				tri[1] = p12;
+				tri[2] = p01;
+				tris.addAll(splitTriangle(tri));
+				tri[0] = p[2];
+				tri[1] = p02;
+				tri[2] = p12;
+				tris.addAll(splitTriangle(tri));
+				tri[0] = p01;
+				tri[1] = p12;
+				tri[2] = p02;
+				tris.addAll(splitTriangle(tri));
+			} else if (e1 && !e2 && !e3){
+				tri[0] = p[0];
+				tri[1] = p[1];
+				tri[2] = p02;
+				tris.addAll(splitTriangle(tri));
+				tri[0] = p[1];
+				tri[1] = p12;
+				tri[2] = p02;
+				tris.addAll(splitTriangle(tri));
+				tri[0] = p[2];
+				tri[1] = p02;
+				tri[2] = p12;
+				tris.addAll(splitTriangle(tri));
+			} else if (!e1 && e2 && !e3){
+				Vertex temp = p[1];
+				p[1] = p[0];
+				p[0] = temp;
+				tris.addAll(splitTriangle(p));
+			} else if (!e1 && !e2 && e3){
+				Vertex temp = p[2];
+				p[2] = p[0];
+				p[0] = temp;
+				tris.addAll(splitTriangle(p));
+			} else if (!e1 && e2 && e3){
+				tri[0] = p[0];
+				tri[1] = p01;
+				tri[2] = p[2];
+				tris.addAll(splitTriangle(tri));
+				tri[0] = p01;
+				tri[1] = p[1];
+				tri[2] = p[2];
+				tris.addAll(splitTriangle(tri));
+			} else if (e1 && !e2 && e3){
+				Vertex temp = p[1];
+				p[1] = p[0];
+				p[0] = temp;
+				tris.addAll(splitTriangle(p));
+			} else if (e1 && e2 && !e3){
+				Vertex temp = p[2];
+				p[2] = p[0];
+				p[0] = temp;
+				tris.addAll(splitTriangle(p));
+			}
 		}
-		
 		return tris;
 	}
 	
-	private boolean testEdge(double tau, double u1, double v1, double u2, double v2, Point x1, Point x2){
-		
-		return bezPatchInterp((u1+u2)/2, (v1+v2)/2).p.subtract(x1.midpoint(x2)).magnitude() < tau;
+	private boolean testEdge(double tau, Vertex x1, Vertex x2){
+		//some of this is redundant but w.e
+		return bezPatchInterp((x1.u+x2.u)/2, (x1.v+x2.v)/2).p.subtract(x1.p.midpoint(x2.p)).magnitude() < tau;
 	}
 
 }
