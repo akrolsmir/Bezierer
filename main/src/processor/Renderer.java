@@ -4,7 +4,6 @@ import java.util.*;
 import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
-import java.nio.file.FileSystems;
 
 import javax.media.opengl.*;
 import javax.media.opengl.awt.GLCanvas;
@@ -15,8 +14,6 @@ import com.jogamp.opengl.util.Animator;
 
 public class Renderer implements GLEventListener {
 
-	private float rotateT = 0.0f;
-	
 	private float[] rgba_spec = {0.0f, 0.0f, 0.0f};
 	private float[] rgba_diff = {0.0f, 0.0f, 0.0f};
 	private float[] rgba_amb = {0.0f, 1.0f, 0.0f};
@@ -140,7 +137,7 @@ public class Renderer implements GLEventListener {
 
 		// Parse all patches, then tessellate into quads
 		System.out.println("Parsing...");
-		List<Patch> patches = Parser.read(FileSystems.getDefault().getPath(fileName));
+		List<Patch> patches = Parser.read(fileName);
 		System.out.println("Tessellating...");
 		for (Patch patch : patches) {
 			switch(tess){
@@ -152,20 +149,6 @@ public class Renderer implements GLEventListener {
 				break;
 			}
 		}
-		/*
-		for(Quad quad : quads){
-			for(int i = 0; i < 4; i++){
-				if(norms.containsKey(quad.points[i])){
-					norms.get(quad.points[i]).add(quad.normals[i]);
-				} else {
-					ArrayList<Point> ns = new ArrayList<Point>();
-					ns.add(quad.normals[i]);
-					norms.put(quad.points[i], ns);
-				}
-			}
-		}
-		*/
-		System.out.println("Generating normals...");
 		System.out.println("Done.");
 	}
 

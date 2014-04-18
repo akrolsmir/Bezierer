@@ -1,26 +1,22 @@
 package processor;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 
 public class Parser {
 	
-	private static final Charset charset = StandardCharsets.UTF_8;
 	private static int lineNum = 1;
 		
 	/**
-	 * File management code taken from http://docs.oracle.com/javase/tutorial/essential/io/file.html
-	 * @throws IOException
+	 * Use for Android parsing
 	 */
-	public static ArrayList<Patch> read(Path file){
+	public static ArrayList<Patch> read(BufferedReader reader){
 		ArrayList<Patch> patches = new ArrayList<Patch>();
 		lineNum = 1;
-		try(BufferedReader reader = Files.newBufferedReader(file, charset)){
+		try {
 			int numPatches = Integer.parseInt(reader.readLine());
 			while(numPatches-- > 0){
 				patches.add(read_patch(reader));
@@ -33,11 +29,37 @@ public class Parser {
 			e.printStackTrace();
 			System.err.println("Line " + lineNum + ": Expected double.");
 			System.exit(1);
+		} finally {
+			try {
+				reader.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 		return patches;
 	}
 	
-	public static Patch read_patch(BufferedReader reader) 
+	
+	/**
+	 * Use for JOGL parsing
+	 * 
+	 * @param filename
+	 * @return
+	 */
+	public static ArrayList<Patch> read(String filename) {
+		try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+			return Parser.read(reader);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	private static Patch read_patch(BufferedReader reader) 
 			throws IOException, ArrayIndexOutOfBoundsException{
 		Patch newPatch = new Patch();
 		String line;
