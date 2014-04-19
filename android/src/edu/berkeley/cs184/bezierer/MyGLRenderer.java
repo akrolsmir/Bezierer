@@ -56,7 +56,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     
     public float angleX, angleY;
     
-    public List<Square> squares = new ArrayList<Square>(); 
+    public List<Square2> squares = new ArrayList<>(); 
     public List<Quad> quads = new ArrayList<>();
 
     @Override
@@ -64,10 +64,16 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
         // Set the background frame color
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        
+//		// Use culling to remove back faces.
+//		GLES20.glEnable(GLES20.GL_CULL_FACE);
+//		
+//		// Enable depth testing
+		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
         // Create "squares" from the tessellated quads
         for(Quad quad : quads) {
-        	squares.add(new Square(quad));
+        	squares.add(new Square2(quad));
         }
     }
 
@@ -101,8 +107,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // for the matrix multiplication product to be correct.
         Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, rot, 0);
 
-        for(Square square : squares) {
-        	square.draw(scratch);
+        for(Square2 square : squares) {
+        	square.draw(scratch, mViewMatrix);
         }
     }
 
