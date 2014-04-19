@@ -4,6 +4,10 @@ import java.util.*;
 import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import javax.media.opengl.*;
 import javax.media.opengl.awt.GLCanvas;
@@ -22,7 +26,13 @@ public class Renderer implements GLEventListener {
 	private float[] filled_rgba_diff = {1.0f, 0.0f, 0.0f};
 	private float[] filled_rgba_amb = {0.2f, 0.0f, 0.0f};
 	
+	private Hashtable<Point, Integer> vertices = new Hashtable<Point, Integer>();
+	private Hashtable<Point, Integer> normals = new Hashtable<Point, Integer>();
+	private ArrayList<Point> orderedVerts = new ArrayList<Point>();
+	private ArrayList<Point> orderedNorms = new ArrayList<Point>();
+
 	private static String fileName;
+	private static String outputFile;
 	
 	private enum Mode {
 		FILLED, WIREFRAME, HIDDEN_LINE
@@ -31,11 +41,16 @@ public class Renderer implements GLEventListener {
 	private enum TessMode {
 		UNIFORM, ADAPTIVE
 	}
+	
+	private enum WriteMode {
+		READ, WRITE
+	}
 
 	private static boolean smooth = true;
 	
 	private static Mode mode = Mode.FILLED;
 	private static TessMode tess = TessMode.UNIFORM;
+	private static WriteMode write = WriteMode.READ;
 	
 	private List<Polygon> quads = new ArrayList<>();
 	static double modifier;
@@ -137,7 +152,7 @@ public class Renderer implements GLEventListener {
 
 		// Parse all patches, then tessellate into quads
 		System.out.println("Parsing...");
-		if(fileName.split("\\.")[1].equals("bez")){
+		if(fileName.split("\\.")[1].compareTo("bez") == 0){
 			List<Patch> patches = Parser.readBez(fileName);
 			System.out.println("Tessellating...");
 			for (Patch patch : patches) {
@@ -155,6 +170,56 @@ public class Renderer implements GLEventListener {
 			System.out.println(quads.size());
 		}
 		System.out.println("Done.");
+		if(write == WriteMode.WRITE){
+			System.out.println("Writing...");
+			int v = 0;
+			int n = 0;
+			for(Polygon quad : quads){
+				Vertex[] polyVertices = quad.getPoints();
+				for(int i = 0; i < polyVertices.length; i++){
+					if(!vertices.containsKey(polyVertices[i].p)){
+						v++;
+						vertices.put(polyVertices[i].p, v);
+						orderedVerts.add(polyVertices[i].p);
+					}
+				}
+				for(int i = 0; i < polyVertices.length; i++){
+					if(!normals.containsKey(polyVertices[i].n)){
+						n++;
+						normals.put(polyVertices[i].n, n);
+						orderedNorms.add(polyVertices[i].n);
+					}
+				}
+			}
+			try{
+				File file = new File(outputFile);
+				if(!file.exists()){
+					file.createNewFile();
+				}
+				FileWriter fw = new FileWriter(file.getAbsoluteFile());
+				BufferedWriter bw = new BufferedWriter(fw);
+				for(Point p : orderedVerts){
+					bw.write("v " + p.getX() + " " + p.getY() + " " + p.getZ() + "\n");
+				}
+				for(Point p : orderedNorms){
+					bw.write("vn " + p.getX() + " " + p.getY() + " " + p.getZ() + "\n");
+				}
+				for(Polygon q : quads){
+					bw.write("f ");
+					Vertex[] points = q.getPoints();
+					for(int i = 0; i < q.getNum(); i++){
+						bw.write(vertices.get(points[i].p).toString() + "//" + normals.get(points[i].n).toString() + " ");
+					}
+					bw.write("\n");
+				}
+				bw.close();
+				System.out.println("Done");
+			} catch (IOException e){
+				e.printStackTrace();
+				System.exit(1);
+			}
+			System.exit(1);
+		}
 	}
 
 	@Override
@@ -177,13 +242,16 @@ public class Renderer implements GLEventListener {
 
 	public static void main(String[] args) {
 		
-		args = new String[]{"teapot.bez", "0.1"};
-		
 		fileName = args[0];
 		modifier = Double.parseDouble(args[1]);
 		for(int i = 2; i < args.length; i++){
 			if(args[i].equals("-a")){
 				tess = TessMode.ADAPTIVE;
+			}
+			if(args[i].equals("-o")){
+				write = WriteMode.WRITE;
+				outputFile = args[i+1];
+				i++;
 			}
 		}
 		final GLCanvas canvas = new GLCanvas();
