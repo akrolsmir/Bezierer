@@ -50,11 +50,14 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     private final float[] mMVPMatrix = new float[16];
     private final float[] mProjectionMatrix = new float[16];
     private final float[] mViewMatrix = new float[16];
-    private final float[] mRotationMatrix = new float[16];
+    private final float[] rotX = new float[16], rotY = new float[16], rot = new float[16];
 
     private float mAngle;
     
-    public List<Square> squares = new ArrayList<Square>(); 
+    public float angleX, angleY;
+    
+    public List<Square2> squares2 = new ArrayList<>(); 
+    public List<Square> squares = new ArrayList<>(); 
     public List<Quad> quads = new ArrayList<>();
 
     @Override
@@ -62,11 +65,23 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
         // Set the background frame color
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        
+//		// Use culling to remove back faces.
+//		GLES20.glEnable(GLES20.GL_CULL_FACE);
+//		
+//		// Enable depth testing
+		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
         // Create "squares" from the tessellated quads
         for(Quad quad : quads) {
+        	squares2.add(new Square2(quad));
         	squares.add(new Square(quad));
         }
+    }
+    
+    private boolean wireframe = false;
+    public void toggleWireframe(){
+    	wireframe = !wireframe;
     }
 
     @Override
@@ -90,16 +105,23 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // long time = SystemClock.uptimeMillis() % 4000L;
         // float angle = 0.090f * ((int) time);
 
-        Matrix.setRotateM(mRotationMatrix, 0, mAngle, 0, 1.0f, 0.0f);
+        Matrix.setRotateM(rotY, 0, angleY, 1.0f, 0.0f, 0.0f);
+        Matrix.setRotateM(rotX, 0, -angleX, 0.0f, 1.0f, 0.0f);
+        Matrix.multiplyMM(rot, 0, rotX, 0, rotY, 0);
 
         // Combine the rotation matrix with the projection and camera view
         // Note that the mMVPMatrix factor *must be first* in order
         // for the matrix multiplication product to be correct.
-        Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, mRotationMatrix, 0);
+        Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, rot, 0);
 
-        for(Square square : squares) {
-        	square.draw(scratch);
-        }
+        if(wireframe)
+        	for(Square square : squares){
+        		square.draw(scratch);
+        	}
+        else
+	        for(Square2 square : squares2) {
+	        	square.draw(scratch, mViewMatrix);
+	        }
     }
 
     @Override
@@ -158,21 +180,4 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
             throw new RuntimeException(glOperation + ": glError " + error);
         }
     }
-
-    /**
-     * Returns the rotation angle of the triangle shape (mTriangle).
-     *
-     * @return - A float representing the rotation angle.
-     */
-    public float getAngle() {
-        return mAngle;
-    }
-
-    /**
-     * Sets the rotation angle of the triangle shape (mTriangle).
-     */
-    public void setAngle(float angle) {
-        mAngle = angle;
-    }
-
 }
