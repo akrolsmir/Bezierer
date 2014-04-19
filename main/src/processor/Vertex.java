@@ -5,6 +5,7 @@ public class Vertex{
 	//such access control
 	public Point p, n;
 	public double u,v;
+	public double curvature;
 	//public Patch patch;
 	
 	public Vertex(Point p, Point n, double u, double v){

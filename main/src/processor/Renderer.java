@@ -4,8 +4,10 @@ import java.util.*;
 import java.util.List;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 
@@ -26,10 +28,20 @@ public class Renderer implements GLEventListener {
 	private float[] filled_rgba_diff = {1.0f, 0.0f, 0.0f};
 	private float[] filled_rgba_amb = {0.2f, 0.0f, 0.0f};
 	
+	private float[] select_rgba_spec = {0.0f, 0.0f, 0.0f};
+	private float[] select_rgba_diff = {0.0f, 0.0f, 0.0f};
+	private float[] select_rgba_amb = {1.0f, 1.0f, 0.0f};
+	
+	private float[] select_filled_rgba_spec = {1.0f, 1.0f, 1.0f};
+	private float[] select_filled_rgba_diff = {1.0f, 1.0f, 0.0f};
+	private float[] select_filled_rgba_amb = {0.2f, 0.2f, 0.0f};
+	
 	private Hashtable<Point, Integer> vertices = new Hashtable<Point, Integer>();
 	private Hashtable<Point, Integer> normals = new Hashtable<Point, Integer>();
 	private ArrayList<Point> orderedVerts = new ArrayList<Point>();
 	private ArrayList<Point> orderedNorms = new ArrayList<Point>();
+	
+	private double maxC;
 
 	private static String fileName;
 	private static String outputFile;
@@ -45,18 +57,26 @@ public class Renderer implements GLEventListener {
 	private enum WriteMode {
 		READ, WRITE
 	}
+	
+	private enum Curvature {
+		ON, OFF
+	}
 
 	private static boolean smooth = true;
 	
 	private static Mode mode = Mode.FILLED;
 	private static TessMode tess = TessMode.UNIFORM;
 	private static WriteMode write = WriteMode.READ;
+	private static Curvature curve = Curvature.OFF;
 	
 	private List<Polygon> quads = new ArrayList<>();
 	static double modifier;
 	
-	private static float rotateX, rotateY, rotateZ;
-	private static float translateX, translateY, translateZ = -10;
+	private static ArrayList<Float[]> rotations = new ArrayList<Float[]>();
+	private static ArrayList<Float[]> translations = new ArrayList<Float[]>();
+	private static List<List<Polygon>> polyList = new ArrayList<List<Polygon>>();
+	
+	private static int current = 0;
 
 	@Override
 	public void display(GLAutoDrawable gLDrawable) {
@@ -65,59 +85,112 @@ public class Renderer implements GLEventListener {
 		gl.glClear(GL.GL_DEPTH_BUFFER_BIT);
 
 		gl.glLoadIdentity();
-		gl.glTranslatef(translateX, translateY, translateZ);
-
-		// rotate about the three axes
-		gl.glRotatef(rotateX, 1.0f, 0.0f, 0.0f);
-		gl.glRotatef(rotateY, 0.0f, 1.0f, 0.0f);
-		gl.glRotatef(rotateZ, 0.0f, 0.0f, 1.0f);
-		
-		gl.glShadeModel(smooth ? GL2.GL_SMOOTH : GL2.GL_FLAT);
-		
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, rgba_amb, 0);
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, rgba_diff, 0);
-        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, rgba_spec, 0);
-
-		switch (mode) {
-		case WIREFRAME:
-			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
-			drawQuads(gl);
-			break;
-		case HIDDEN_LINE:
-			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
-			drawQuads(gl);
-
-			// Hidden-line removal through polygon offset
-			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
-			gl.glEnable(GL2.GL_POLYGON_OFFSET_FILL);
-			gl.glDisable(GL2.GL_LIGHTING);
-			gl.glPolygonOffset(1.0f, 1.0f);
-			gl.glColor3f(0.0f, 0.0f, 0.0f); // Background color
-			drawQuads(gl);
-			gl.glDisable(GL2.GL_POLYGON_OFFSET_FILL);
-			gl.glEnable(GL2.GL_LIGHTING);
-			break;
-		case FILLED:
-	        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, filled_rgba_amb, 0);
-	        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, filled_rgba_diff, 0);
-	        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, filled_rgba_spec, 0);
-	        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 16.0f);
-			gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
-			drawQuads(gl);
-			break;
+		for(int i = 0; i < polyList.size(); i++){
+			
+			gl.glTranslatef(translations.get(i)[0], translations.get(i)[1], translations.get(i)[2]);
+	
+			// rotate about the three axes
+			gl.glRotatef(rotations.get(i)[0], 1.0f, 0.0f, 0.0f);
+			gl.glRotatef(rotations.get(i)[1], 0.0f, 1.0f, 0.0f);
+			gl.glRotatef(rotations.get(i)[2], 0.0f, 0.0f, 1.0f);
+			
+			gl.glShadeModel(smooth ? GL2.GL_SMOOTH : GL2.GL_FLAT);
+			
+			if(curve == Curvature.OFF){
+				gl.glEnable(GL2.GL_LIGHTING);
+				if(i == current){
+					gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, select_rgba_amb, 0);
+			        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, select_rgba_diff, 0);
+			        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, select_rgba_spec, 0);
+				} else {
+					gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, rgba_amb, 0);
+			        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, rgba_diff, 0);
+			        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, rgba_spec, 0);
+				}
+			} else {
+				gl.glDisable(GL2.GL_LIGHTING);
+			}
+	
+			switch (mode) {
+			case WIREFRAME:
+				gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+				drawQuads(gl, i);
+				break;
+			case HIDDEN_LINE:
+				gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_LINE);
+				drawQuads(gl, i);
+	
+				// Hidden-line removal through polygon offset
+				gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+				gl.glEnable(GL2.GL_POLYGON_OFFSET_FILL);
+				gl.glDisable(GL2.GL_LIGHTING);
+				gl.glPolygonOffset(1.0f, 1.0f);
+				gl.glColor3f(0.0f, 0.0f, 0.0f); // Background color
+				drawQuads(gl, i);
+				gl.glDisable(GL2.GL_POLYGON_OFFSET_FILL);
+				gl.glEnable(GL2.GL_LIGHTING);
+				break;
+			case FILLED:
+				if(curve == Curvature.OFF){
+					if(i == current){
+						gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, select_filled_rgba_amb, 0);
+				        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, select_filled_rgba_diff, 0);
+				        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, select_filled_rgba_spec, 0);
+				        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 16.0f);
+					} else {
+						gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_AMBIENT, filled_rgba_amb, 0);
+				        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_DIFFUSE, filled_rgba_diff, 0);
+				        gl.glMaterialfv(GL2.GL_FRONT_AND_BACK, GL2.GL_SPECULAR, filled_rgba_spec, 0);
+				        gl.glMaterialf(GL2.GL_FRONT_AND_BACK, GL2.GL_SHININESS, 16.0f);
+					}
+				}
+				gl.glPolygonMode(GL2.GL_FRONT_AND_BACK, GL2.GL_FILL);
+				drawQuads(gl, i);
+				break;
+			}
+			
+			
+			//undo all transforms
+			
+			// rotate about the three axes
+			gl.glRotatef(-rotations.get(i)[2], 0.0f, 0.0f, 1.0f);
+			gl.glRotatef(-rotations.get(i)[1], 0.0f, 1.0f, 0.0f);
+			gl.glRotatef(-rotations.get(i)[0], 1.0f, 0.0f, 0.0f);
+			
+			gl.glTranslatef(-translations.get(i)[0], -translations.get(i)[1], -translations.get(i)[2]);
+			
+			
 		}
 
 		// increasing rotation for the next iteration
 		// rotateT += 0.2f;
 	}
 	
-	private void drawQuads(GL2 gl) {
+	private double findMaxCurvature(){
+		double maxCurve = 0.0;
+		for(List<Polygon> lst : polyList){
+			for(Polygon p : lst){
+				Vertex[] points = p.getPoints();
+				for(int i = 0; i < p.getNum(); i++){
+					if(points[i].curvature > maxCurve){
+						maxCurve = points[i].curvature;
+					}
+				}
+			}
+		}
+		return maxCurve;
+	}
+	
+	private void drawQuads(GL2 gl, int num) {
 		// Draw all quads
-		for (Polygon quad : quads) {
+		for (Polygon quad : polyList.get(num)) {
 			gl.glBegin(GL2.GL_POLYGON);
+			Vertex[] points = quad.getPoints();
 			for (int i = 0; i < quad.getNum(); i++) {
-				Vertex[] points = quad.getPoints();
 				float[] normal = {(float) points[i].n.getX(), (float) points[i].n.getY(), (float) points[i].n.getZ()};
+				if(curve == Curvature.ON){
+					gl.glColor3d(points[i].curvature/maxC, 0.0, (maxC-points[i].curvature)/maxC);
+				}
 				gl.glNormal3fv(normal, 0);
 				gl.glVertex3d(points[i].p.getX(), points[i].p.getY(), points[i].p.getZ());
 			}
@@ -137,6 +210,29 @@ public class Renderer implements GLEventListener {
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_SPECULAR, specular, 0);
 		gl.glLightfv(GL2.GL_LIGHT0, GL2.GL_POSITION, lightPos, 0);
 	}
+	
+	private void initFile(String file_name){
+		System.out.println("Parsing...");
+		ArrayList<Polygon> temp = new ArrayList<Polygon>();
+		if(file_name.split("\\.")[1].compareTo("bez") == 0){
+			List<Patch> patches = Parser.readBez(file_name);
+			System.out.println("Tessellating...");
+			for (Patch patch : patches) {
+				switch(tess){
+				case UNIFORM: 
+					temp.addAll(patch.uniformTessellation(modifier));
+					break;
+				case ADAPTIVE:
+					temp.addAll(patch.adaptiveTessellation(modifier, 0.0, 1.0, 0.0, 1.0));
+					break;
+				}
+			}
+		} else {
+			temp.addAll(Parser.readObj(fileName));
+		}
+		polyList.add(temp);
+		System.out.println("Done.");
+	}
 
 
 	@Override
@@ -151,25 +247,39 @@ public class Renderer implements GLEventListener {
 		gl.glHint(GL2ES1.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);
 
 		// Parse all patches, then tessellate into quads
-		System.out.println("Parsing...");
-		if(fileName.split("\\.")[1].compareTo("bez") == 0){
-			List<Patch> patches = Parser.readBez(fileName);
-			System.out.println("Tessellating...");
-			for (Patch patch : patches) {
-				switch(tess){
-				case UNIFORM: 
-					quads.addAll(patch.uniformTessellation(modifier));
-					break;
-				case ADAPTIVE:
-					quads.addAll(patch.adaptiveTessellation(modifier, 0.0, 1.0, 0.0, 1.0));
-					break;
+		if(fileName.split("\\.")[1].compareTo("scene") == 0){
+			//do something
+			try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+				String line;
+				while((line = reader.readLine()) != null){
+					if(line.matches("\\s*")){
+					} else {
+						String[] in = line.trim().split("\\s+");
+						String buf = in[0];
+						if (buf.equals("translate")){
+							Float[] temp = {Float.parseFloat(in[1]), Float.parseFloat(in[2]), Float.parseFloat(in[3])};
+							translations.add(temp);
+						} else if (buf.equals("rotate")){
+							Float[] temp = {Float.parseFloat(in[1]), Float.parseFloat(in[2]), Float.parseFloat(in[3])};
+							rotations.add(temp);
+						} else{
+							initFile(buf);
+						}
+					}
 				}
+			} catch(Exception e){
+				e.printStackTrace();
 			}
 		} else {
-			quads.addAll(Parser.readObj(fileName));
-			System.out.println(quads.size());
+			Float[] trans = {(float) 0.0, (float) 0.0, (float) -10.0};
+			translations.add(trans);
+			Float[] rots = {(float) 0.0, (float) 0.0, (float) 0.0};
+			rotations.add(rots);
+			initFile(fileName);
 		}
-		System.out.println("Done.");
+		
+		maxC = findMaxCurvature()*.1;
+		
 		if(write == WriteMode.WRITE){
 			System.out.println("Writing...");
 			int v = 0;
@@ -278,40 +388,40 @@ public class Renderer implements GLEventListener {
 					switch (e.getKeyCode()) {
 					// Translate object in x/y plane
 					case KeyEvent.VK_UP:
-						translateY += move;
+						translations.get(current)[1] += move;
 						break;
 					case KeyEvent.VK_DOWN:
-						translateY -= move;
+						translations.get(current)[1] -= move;
 						break;
 					case KeyEvent.VK_LEFT:
-						translateX -= move;
+						translations.get(current)[0] -= move;
 						break;
 					case KeyEvent.VK_RIGHT:
-						translateX += move;
+						translations.get(current)[0] += move;
 						break;
 					}
 				} else {
 					switch (e.getKeyCode()) {
 					// Rotate object
 					case KeyEvent.VK_UP:
-						rotateX += turn;
+						rotations.get(current)[0] += turn;
 						break;
 					case KeyEvent.VK_DOWN:
-						rotateX -= turn;
+						rotations.get(current)[0] -= turn;
 						break;
 					case KeyEvent.VK_LEFT:
-						rotateY += turn;
+						rotations.get(current)[1] += turn;
 						break;
 					case KeyEvent.VK_RIGHT:
-						rotateY -= turn;
+						rotations.get(current)[1] -= turn;
 						break;
 						
 					// Zoom in or out
 					case KeyEvent.VK_EQUALS:
-						translateZ += move;
+						translations.get(current)[2] += move;
 						break;
 					case KeyEvent.VK_MINUS:
-						translateZ -= move;
+						translations.get(current)[2] -= move;
 						break;
 
 					// Toggle different modes
@@ -323,6 +433,16 @@ public class Renderer implements GLEventListener {
 						break;
 					case KeyEvent.VK_H:
 						mode = mode == Mode.HIDDEN_LINE ? Mode.FILLED : Mode.HIDDEN_LINE;
+						break;
+					
+					// Toggle objects
+					case KeyEvent.VK_V:
+						current = (current + 1) % polyList.size();
+						break;
+					
+					//Gaussian curvature
+					case KeyEvent.VK_C:
+						curve = curve == Curvature.ON ? Curvature.OFF : Curvature.ON;
 						break;
 					}
 				}

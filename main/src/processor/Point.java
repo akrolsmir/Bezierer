@@ -194,6 +194,10 @@ public class Point {
     public Point multiply(double factor) {
         return new Point(getX() * factor, getY() * factor, getZ() * factor);
     }
+    
+    public Point pairwise(Point p){
+    	return new Point(getX() * p.getX(), getY() * p.getY(), getZ() * p.getZ());
+    }
 
     /**
      * Normalizes the relative magnitude vector represented by this instance.

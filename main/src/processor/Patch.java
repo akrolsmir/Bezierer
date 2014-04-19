@@ -93,6 +93,10 @@ public class Patch {
 
 		return new Vertex(p,n, u, u);
 	}
+	
+	private double secondDerivative(Point[] curve, double u){
+		return (curve[2].subtract(curve[1].multiply(2)).add(curve[0])).multiply(6*(1-u)).add((curve[3].subtract(curve[2].multiply(2)).add(curve[1])).multiply(6*u)).magnitude();
+	}
 
 	private Vertex bezPatchInterp(double u, double v) {
 		Point[] vcurve = new Point[4];
@@ -111,7 +115,6 @@ public class Patch {
 		}
 		p = bezCurveInterp(ucurve, u).p;
 		
-		//broken, doesnt properly handle degenerate normals
 		do{
 			vPoint = bezCurveInterp(vcurve, v).n;
 			uPoint = bezCurveInterp(ucurve, u).n;
@@ -136,9 +139,13 @@ public class Patch {
 				}
 			}
 		} while(n.distance(Point.ZERO) < .0001);
-
+		
+		
 	
-		return new Vertex(p, n.normalize(), u, v);
+		Vertex result = new Vertex(p, n.normalize(), u, v);
+		result.curvature = (secondDerivative(ucurve, u)*secondDerivative(vcurve,v) - 2*(uPoint.pairwise(vPoint).magnitude()))/
+				Math.pow((1 + Math.pow(uPoint.magnitude(),2) + Math.pow(vPoint.magnitude(), 2)),2);
+		return result;
 	}
 	
 	
@@ -149,8 +156,8 @@ public class Patch {
 	 *            The step size to use, between 0 and 1.0
 	 * @return The list of quads
 	 */
-	public List<Quad> uniformTessellation(double step) {
-		ArrayList<Quad> quads = new ArrayList<Quad>();
+	public List<Polygon> uniformTessellation(double step) {
+		ArrayList<Polygon> quads = new ArrayList<Polygon>();
 
 		for (double i = 0; i + step < 1 + 0.0001; i += step) {
 			for (double j = 0; j + step < 1 + 0.0001; j += step) {
@@ -171,8 +178,8 @@ public class Patch {
 	 * UNLESS IT MAGICALLY WORKS + LAZY
 	 */
 	
-	public List<Triangle> adaptiveTessellation(double error, double Umin, double Umax, double Vmin, double Vmax){
-		ArrayList<Triangle> tris = new ArrayList<Triangle>();
+	public List<Polygon> adaptiveTessellation(double error, double Umin, double Umax, double Vmin, double Vmax){
+		ArrayList<Polygon> tris = new ArrayList<Polygon>();
 		Vertex[] p = new Vertex[4];
 		p[0] = bezPatchInterp(Umin, Vmin);
 		p[1] = bezPatchInterp(Umax, Vmin);
