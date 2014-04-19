@@ -103,5 +103,10 @@ public class MyGLSurfaceView extends GLSurfaceView {
         mPreviousY = y;
         return true;
     }
+    
+    public void toggleWireframe(){
+    	mRenderer.toggleWireframe();
+    	requestRender();
+    }
 
 }

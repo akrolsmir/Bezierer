@@ -56,7 +56,8 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     
     public float angleX, angleY;
     
-    public List<Square2> squares = new ArrayList<>(); 
+    public List<Square2> squares2 = new ArrayList<>(); 
+    public List<Square> squares = new ArrayList<>(); 
     public List<Quad> quads = new ArrayList<>();
 
     @Override
@@ -73,8 +74,14 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
         // Create "squares" from the tessellated quads
         for(Quad quad : quads) {
-        	squares.add(new Square2(quad));
+        	squares2.add(new Square2(quad));
+        	squares.add(new Square(quad));
         }
+    }
+    
+    private boolean wireframe = false;
+    public void toggleWireframe(){
+    	wireframe = !wireframe;
     }
 
     @Override
@@ -107,9 +114,14 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         // for the matrix multiplication product to be correct.
         Matrix.multiplyMM(scratch, 0, mMVPMatrix, 0, rot, 0);
 
-        for(Square2 square : squares) {
-        	square.draw(scratch, mViewMatrix);
-        }
+        if(wireframe)
+        	for(Square square : squares){
+        		square.draw(scratch);
+        	}
+        else
+	        for(Square2 square : squares2) {
+	        	square.draw(scratch, mViewMatrix);
+	        }
     }
 
     @Override
