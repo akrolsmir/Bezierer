@@ -171,8 +171,6 @@ public class Patch {
 	 * UNLESS IT MAGICALLY WORKS + LAZY
 	 */
 	
-	private double tau = .001;
-	
 	public List<Triangle> adaptiveTessellation(double error, double Umin, double Umax, double Vmin, double Vmax){
 		ArrayList<Triangle> tris = new ArrayList<Triangle>();
 		Vertex[] p = new Vertex[4];
@@ -181,52 +179,25 @@ public class Patch {
 		p[2] = bezPatchInterp(Umax, Vmax);
 		p[3] = bezPatchInterp(Umin, Vmax);
 		
-		if(isFlat(p, error, Umin, Umax, Vmin, Vmax)){
-			Vertex[] pTemp = new Vertex[3];
-			pTemp[0] = p[0];
-			pTemp[1] = p[1];
-			pTemp[2] = p[2];
-			tris.addAll(splitTriangle(pTemp));
-			pTemp[0] = p[0];
-			pTemp[1] = p[2];
-			pTemp[2] = p[3];
-			tris.addAll(splitTriangle(pTemp));
-			
-		} else {
-			tris.addAll(adaptiveTessellation(error,Umin,(Umin+Umax)/2,Vmin,(Vmin+Vmax)/2)); //such recursion
-			tris.addAll(adaptiveTessellation(error,Umin,(Umin+Umax)/2,(Vmin+Vmax)/2,Vmax));
-			tris.addAll(adaptiveTessellation(error,(Umin+Umax)/2,Umax,Vmin,(Vmin+Vmax)/2));
-			tris.addAll(adaptiveTessellation(error,(Umin+Umax)/2,Umax,(Vmin+Vmax)/2,Vmax));
-		}
+		Vertex[] pTemp = new Vertex[3];
+		pTemp[0] = p[0];
+		pTemp[1] = p[1];
+		pTemp[2] = p[2];
+		tris.addAll(splitTriangle(pTemp, error));
+		pTemp[0] = p[0];
+		pTemp[1] = p[2];
+		pTemp[2] = p[3];
+		tris.addAll(splitTriangle(pTemp, error));
 		
 		return tris;
 	}
 	
-	private boolean isFlat(Vertex[] p, double error, double Umin, double Umax, double Vmin, double Vmax){
-		Vertex[] midpoints = new Vertex[4];
-		Vertex center;
-		
-		for(int i = 0; i < 4; i++){
-			midpoints[i] = bezPatchInterp((p[i].u+p[(i+1)%4].u)/2, (p[i].v+p[(i+1)%4].v)/2);
-		}
-		center = bezPatchInterp((Umin + Umax)/2, (Vmin+Vmax)/2);
-		for(int i = 0; i < 4; i++){
-			if(midpoints[i].p.subtract(p[i].p.midpoint(p[(i+1)%4].p)).magnitude() >= error){
-				return false;
-			}
-		}
-		return center.p.subtract(p[0].p.midpoint(p[2].p)).magnitude() < error;
-	}
-	
-	public int depth = 0;
-	
-	private List<Triangle> splitTriangle(Vertex[] p){
+	private List<Triangle> splitTriangle(Vertex[] p, double error){
 		ArrayList<Triangle> tris = new ArrayList<Triangle>();
-		boolean e1 = testEdge(tau, p[0], p[1]);
-		boolean e2 = testEdge(tau, p[0], p[2]);
-		boolean e3 = testEdge(tau, p[1], p[2]);
+		boolean e1 = testEdge(error, p[0], p[1]);
+		boolean e2 = testEdge(error, p[0], p[2]);
+		boolean e3 = testEdge(error, p[1], p[2]);
 		if(e1 && e2 && e3){
-			depth--;
 			tris.add(new Triangle(p));
 			return tris;
 		}
@@ -243,69 +214,69 @@ public class Patch {
 				tri[0] = p[0];
 				tri[1] = p01;
 				tri[2] = p02;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 				tri[0] = p[1];
 				tri[1] = p12;
 				tri[2] = p01;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 				tri[0] = p[2];
 				tri[1] = p02;
 				tri[2] = p12;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 				tri[0] = p01;
 				tri[1] = p12;
 				tri[2] = p02;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 			} else if (e1 && !e2 && !e3){
 				tri[0] = p[0];
 				tri[1] = p[1];
 				tri[2] = p02;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 				tri[0] = p[1];
 				tri[1] = p12;
 				tri[2] = p02;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 				tri[0] = p[2];
 				tri[1] = p02;
 				tri[2] = p12;
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 			} else if (!e1 && e2 && !e3){
 				Vertex temp = p[1];
 				p[1] = p[0];
 				p[0] = temp;
-				tris.addAll(splitTriangle(p));
+				tris.addAll(splitTriangle(p, error));
 			} else if (!e1 && !e2 && e3){
 				Vertex temp = p[2];
 				p[2] = p[0];
 				p[0] = temp;
-				tris.addAll(splitTriangle(p));
+				tris.addAll(splitTriangle(p, error));
 			} else if (!e1 && e2 && e3){
 				tri[0] = p[0];
 				tri[1] = p01;
 				tri[2] = p[2];
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 				tri[0] = p01;
 				tri[1] = p[1];
 				tri[2] = p[2];
-				tris.addAll(splitTriangle(tri));
+				tris.addAll(splitTriangle(tri, error));
 			} else if (e1 && !e2 && e3){
 				Vertex temp = p[1];
 				p[1] = p[0];
 				p[0] = temp;
-				tris.addAll(splitTriangle(p));
+				tris.addAll(splitTriangle(p, error));
 			} else if (e1 && e2 && !e3){
 				Vertex temp = p[2];
 				p[2] = p[0];
 				p[0] = temp;
-				tris.addAll(splitTriangle(p));
+				tris.addAll(splitTriangle(p, error));
 			}
 		}
 		return tris;
 	}
 	
-	private boolean testEdge(double tau, Vertex x1, Vertex x2){
+	private boolean testEdge(double error, Vertex x1, Vertex x2){
 		//some of this is redundant but w.e
-		return bezPatchInterp((x1.u+x2.u)/2, (x1.v+x2.v)/2).p.subtract(x1.p.midpoint(x2.p)).magnitude() < tau;
+		return bezPatchInterp((x1.u+x2.u)/2, (x1.v+x2.v)/2).p.subtract(x1.p.midpoint(x2.p)).magnitude() < error;
 	}
 
 }

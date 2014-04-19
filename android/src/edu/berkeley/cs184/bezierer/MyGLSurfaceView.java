@@ -52,7 +52,7 @@ public class MyGLSurfaceView extends GLSurfaceView {
 		try {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(
 					context.getAssets().open("teapot.bez")));
-			List<Patch> patches = Parser.read(reader);
+			List<Patch> patches = Parser.readBez(reader);
 			for (Patch patch : patches) {
 				mRenderer.quads.addAll(patch.uniformTessellation(0.25));
 			}

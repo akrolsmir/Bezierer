@@ -137,17 +137,22 @@ public class Renderer implements GLEventListener {
 
 		// Parse all patches, then tessellate into quads
 		System.out.println("Parsing...");
-		List<Patch> patches = Parser.read(fileName);
-		System.out.println("Tessellating...");
-		for (Patch patch : patches) {
-			switch(tess){
-			case UNIFORM: 
-				quads.addAll(patch.uniformTessellation(modifier));
-				break;
-			case ADAPTIVE:
-				quads.addAll(patch.adaptiveTessellation(modifier, 0.0, 1.0, 0.0, 1.0));
-				break;
+		if(fileName.split("\\.")[1].equals("bez")){
+			List<Patch> patches = Parser.readBez(fileName);
+			System.out.println("Tessellating...");
+			for (Patch patch : patches) {
+				switch(tess){
+				case UNIFORM: 
+					quads.addAll(patch.uniformTessellation(modifier));
+					break;
+				case ADAPTIVE:
+					quads.addAll(patch.adaptiveTessellation(modifier, 0.0, 1.0, 0.0, 1.0));
+					break;
+				}
 			}
+		} else {
+			quads.addAll(Parser.readObj(fileName));
+			System.out.println(quads.size());
 		}
 		System.out.println("Done.");
 	}
@@ -171,10 +176,15 @@ public class Renderer implements GLEventListener {
 	}
 
 	public static void main(String[] args) {
+		
+		args = new String[]{"teapot.bez", "0.1"};
+		
 		fileName = args[0];
 		modifier = Double.parseDouble(args[1]);
-		if (args.length == 3 && args[2] == "-a"){
-			tess = TessMode.ADAPTIVE;
+		for(int i = 2; i < args.length; i++){
+			if(args[i].equals("-a")){
+				tess = TessMode.ADAPTIVE;
+			}
 		}
 		final GLCanvas canvas = new GLCanvas();
 		final Frame frame = new Frame("BZR!");

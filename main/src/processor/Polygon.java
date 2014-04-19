@@ -7,4 +7,6 @@ public abstract class Polygon {
 	public abstract Vertex[] getPoints();
 	
 	public abstract int getNum();
+	
+	public abstract void setPoints(Vertex[] p);
 }
